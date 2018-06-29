@@ -9,11 +9,13 @@
 #define INNUM 25
 #define HIDDENNUM 10
 #define OUTNUM 10
+#define LEARN_RATE 0.005
 
 struct TRAINDATA {
 private:
 	bool data[INNUM];//トレーニングデータデータ
 	int y_hat; //トレーニングデータの正解 0 ～ 9
+	int y_hat_arr[10];
 public:
 	TRAINDATA(bool *x, int y_hat);
 	bool *getData();
@@ -74,7 +76,6 @@ int main() {
 	int train_number = 121212;
 	DWORD dwNumberOfBytesRead;
 	hPipe = CreateNamedPipe("\\\\.\\pipe\\mypipe", PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE | PIPE_WAIT, 3, 0, 0, 100, NULL);
-
 	if (hPipe == INVALID_HANDLE_VALUE) {
 		std::cout << "Pipe Error1" << std::endl;
 		return 1;
@@ -134,6 +135,9 @@ TRAINDATA::TRAINDATA(bool *x, int y_hat) {
 		data[i] = x[i];
 	}
 	this->y_hat = y_hat;
+	for (int i = 0; i < 10; i++) {
+		y_hat_arr[i] = i == y_hat ? 1 : 0;
+	}
 }
 bool* TRAINDATA::getData() {
 	return data;
