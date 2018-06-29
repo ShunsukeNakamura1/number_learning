@@ -11,8 +11,12 @@
 #define OUTNUM 10
 
 struct TRAINDATA {
+private:
 	bool data[INNUM];//トレーニングデータデータ
 	int y_hat; //トレーニングデータの正解 0 ～ 9
+public:
+	TRAINDATA(bool *x, int y_hat);
+	bool *getData();
 };
 
 struct tINPUT {
@@ -53,8 +57,9 @@ public:
 };
 
 int main() {
+	HANDLE hPipe;
 	std::random_device rand;
-
+	std::vector<TRAINDATA> train;//教師データ
 	bool x[INNUM] = { 0 };//入力データ
 	tINPUT in;     //入力層
 	tHIDDEN hidden;//中間層
@@ -63,17 +68,47 @@ int main() {
 	double *hidden_data;//中間層の出力
 	double *output_data;//出力層の出力
 
-	//データセット(テスト)
-	for (int i = 0; i < INNUM; i++) {
-		if (rand() % 2 == 0) {
-			x[i] = true;
+	//データセット
+	std::cout << "教師データ入力" << std::endl;
+	bool szBuff[INNUM] = { false };
+	int train_number = 121212;
+	DWORD dwNumberOfBytesRead;
+	hPipe = CreateNamedPipe("\\\\.\\pipe\\mypipe", PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE | PIPE_WAIT, 3, 0, 0, 100, NULL);
+
+	if (hPipe == INVALID_HANDLE_VALUE) {
+		std::cout << "Pipe Error1" << std::endl;
+		return 1;
+	}
+	if (!ConnectNamedPipe(hPipe, NULL)) {
+		CloseHandle(hPipe);
+		std::cout << "Pipe Error2" << std::endl;
+		return 1;
+	}
+	while (1) {
+		if (!ReadFile(hPipe, szBuff, sizeof(szBuff), &dwNumberOfBytesRead, NULL)) {
+			break;
 		}
-		else {
-			x[i] = false;
+		for (int i = 0; i<INNUM; i++) {
+			printf(szBuff[i] ? "1" : "0");
+			if ((i + 1) % 5 == 0) {
+				printf("\n");
+			}
 		}
+		for (int i = 0; i<INNUM; i++) {
+			printf(szBuff[i] ? "■" : "□");
+			if ((i + 1) % 5 == 0) {
+				printf("\n");
+			}
+		}
+		if (!ReadFile(hPipe, &train_number, sizeof(train_number), &dwNumberOfBytesRead, NULL)) {
+			break;
+		}
+		printf("number: %d\n", train_number);
+		train.push_back(TRAINDATA(szBuff, train_number));
 	}
 
-	in.setData(x);
+	//学習部分
+	in.setData(train[0].getData());
 	in.dispData();
 	input_data = in.getData();
 
@@ -90,10 +125,22 @@ int main() {
 	return 0;
 }
 
-
-/*--------*/
+/*--------------------*/
 //
+//TRAINDATA
 //
+TRAINDATA::TRAINDATA(bool *x, int y_hat) {
+	for (int i = 0; i < INNUM; i++) {
+		data[i] = x[i];
+	}
+	this->y_hat = y_hat;
+}
+bool* TRAINDATA::getData() {
+	return data;
+}
+/*--------------------*/
+//
+//TINPUT
 //
 //bool *x  << bool x[INNUM]
 void tINPUT::setData(bool *x) {
@@ -116,7 +163,7 @@ void tINPUT::dispData() {
 }
 /*--------*/
 //
-//
+//tHIDDEN
 //
 tHIDDEN::tHIDDEN() {
 	std::random_device rand;
@@ -166,9 +213,9 @@ void tHIDDEN::dispData() {
 	}
 	std::cout << "-----------" << std::endl;
 }
-/*--------*/
+/*--------------------*/
 //
-//
+//tOUTPUT
 //
 tOUTPUT::tOUTPUT() {
 	std::random_device rand;
