@@ -1,4 +1,4 @@
-#number learning
+# number learning
 
 知能情報工学の課題として，数字の識別をするように学習をしてみる
 識別する数字は0～9
