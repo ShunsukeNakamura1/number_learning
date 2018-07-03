@@ -77,6 +77,7 @@ public:
 	double *getσ();
 	void dispData();
 	void dispW();
+	void answer();
 };
 
 double sigmoid(double x);
@@ -131,9 +132,12 @@ int main() {
 		printf("number: %d\n", train_number);
 		train.push_back(tTRAINDATA(szBuff, train_number));
 	}
+	int learning_times;
+	std::cout << "学習回数入力 : ";
+	std::cin >> learning_times;
 	std::cout << "学習開始" << std::endl;
 	//学習部
-	for (int i = 0; i < 10000; i++) {//とりあえず1万回ループ
+	for (int i = 0; i < learning_times; i++) {//とりあえず1万回ループ
 		for (int j = 0; j < train.size(); j++) {//トレーニングデータ数分だけ実行
 			//データのセット
 			in.setData(train[j].getData());//in.dispData()で表示可
@@ -198,11 +202,8 @@ int main() {
 		hidden_data = hidden.getData();
 		out.forward(hidden_data);
 		out.dispData();
+		out.answer();
 	}
-	hidden.forward(input_data);
-	hidden_data = hidden.getData();
-	out.forward(hidden_data);
-	out.dispData();
 	int wait;
 	std::cin >> wait;
 	return 0;
@@ -420,4 +421,19 @@ void tOUTPUT::dispW() {
 		std::cout << std::endl;
 	}
 	std::cout << "-----------" << std::endl;
+}
+void tOUTPUT::answer() {
+	double max = -1000;
+	int max_number = 0;
+	double sum = 0;
+	for (int i = 0; i < OUTNUM; i++) {
+		if (data[i] > max) {
+			max = data[i];
+			max_number = i;
+		}
+		sum += data[i];
+	}
+	std::cout << "-----テストデータ解答-----" << std::endl;
+	std::cout << "答え : " << max_number << std::endl;
+	std::cout << "確率 : " << (max / sum) * 100 << "[%]" << std::endl;
 }
