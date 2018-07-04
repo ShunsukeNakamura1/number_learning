@@ -16,7 +16,7 @@ struct tTRAINDATA {
 private:
 	bool data[INNUM];//トレーニングデータデータ
 	int y_hat; //トレーニングデータの正解 0 ～ 9
-	int y_hat_arr[OUTNUM];
+	int y_hat_arr[OUTNUM]; //トレーニングデータの正解の場所だけtrue
 public:
 	tTRAINDATA();
 	tTRAINDATA(bool *x, int y_hat);
@@ -36,13 +36,13 @@ public:
 
 struct tHIDDEN {
 private:
-	double data[HIDDENNUM];
-	double bias[HIDDENNUM];
-	double w[HIDDENNUM][INNUM];
-	double delta_w_last[HIDDENNUM][INNUM];
-	double delta_bias_last[HIDDENNUM];
-	double u[HIDDENNUM];
-	double σ[HIDDENNUM];
+	double data[HIDDENNUM];//この層の出力値
+	double bias[HIDDENNUM];//バイアス値
+	double w[HIDDENNUM][INNUM];//w[a][b] << この層のa番目のモジュールに前の層のb番目のモジュールから入ってくる信号の結合荷重
+	double delta_w_last[HIDDENNUM][INNUM];//前回の学習での結合荷重の修正量
+	double delta_bias_last[HIDDENNUM];//前回の学習でのバイアス値の修正量
+	double u[HIDDENNUM];//内部ポテンシャル
+	double σ[HIDDENNUM];//前の層に渡す学習信号
 	void sum(double *x, double *sum);
 	void sigmoid(double *sum);
 public:
@@ -102,12 +102,12 @@ int main() {
 	DWORD dwNumberOfBytesRead;
 	hPipe = CreateNamedPipe("\\\\.\\pipe\\mypipe", PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE | PIPE_WAIT, 3, 0, 0, 100, NULL);
 	if (hPipe == INVALID_HANDLE_VALUE) {
-		std::cout << "Pipe Error1" << std::endl;
+		std::cout << "Pipe Error 1" << std::endl;
 		return 1;
 	}
 	if (!ConnectNamedPipe(hPipe, NULL)) {
 		CloseHandle(hPipe);
-		std::cout << "Pipe Error2" << std::endl;
+		std::cout << "Pipe Error 2" << std::endl;
 		return 1;
 	}
 	while (1) {
@@ -136,8 +136,9 @@ int main() {
 	std::cout << "学習回数入力 : ";
 	std::cin >> learning_times;
 	std::cout << "学習開始" << std::endl;
+	int percentage = learning_times / 10;
 	//学習部
-	for (int i = 0; i < learning_times; i++) {//とりあえず1万回ループ
+	for (int i = 0; i < learning_times; i++) {
 		for (int j = 0; j < train.size(); j++) {//トレーニングデータ数分だけ実行
 			//データのセット
 			in.setData(train[j].getData());//in.dispData()で表示可
@@ -161,6 +162,9 @@ int main() {
 			out.update(hidden.getData());
 			//out.dispW();
 		}
+		if ((i + 1) % percentage == 0) {
+			std::cout << (i / percentage + 1) * 10 << " %" << std::endl;
+		}
 	}
 	std::cout << "学習終了" << std::endl;
 	std::cout << "テストデータ入力" << std:: endl;
@@ -180,12 +184,6 @@ int main() {
 			break;
 		}
 		for (int i = 0; i<INNUM; i++) {
-			printf(szBuff[i] ? "1" : "0");
-			if ((i + 1) % 5 == 0) {
-				printf("\n");
-			}
-		}
-		for (int i = 0; i<INNUM; i++) {
 			printf(szBuff[i] ? "■" : "□");
 			if ((i + 1) % 5 == 0) {
 				printf("\n");
@@ -194,7 +192,6 @@ int main() {
 		if (!ReadFile(hPipe, &train_number, sizeof(train_number), &dwNumberOfBytesRead, NULL)) {
 			break;
 		}
-		printf("number: %d\n", train_number);
 		test = tTRAINDATA(szBuff, train_number);
 		in.setData(test.getData());
 		input_data = in.getData();
@@ -204,7 +201,7 @@ int main() {
 		out.dispData();
 		out.answer();
 	}
-	int wait;
+	std::string wait;
 	std::cin >> wait;
 	return 0;
 }
@@ -405,7 +402,7 @@ double* tOUTPUT::getσ() {
 void tOUTPUT::dispData() {
 	std::cout << "OUTPUT LAYER DATA" << std::endl;
 	for (int i = 0; i < OUTNUM; i++) {
-		std::cout << data[i] << " ";
+		std::cout << i << " : " << data[i] << "  ";
 		if ((i + 1) % 5 == 0) {
 			std::cout << std::endl;
 		}
@@ -434,6 +431,10 @@ void tOUTPUT::answer() {
 		sum += data[i];
 	}
 	std::cout << "-----テストデータ解答-----" << std::endl;
+	std::cout << "確率" << std::endl;
+	for (int i = 0; i < OUTNUM; i++) {
+		std::cout << i << " ・・・ " << (data[i] / sum) * 100 << "[%]" << std::endl;
+	}
 	std::cout << "答え : " << max_number << std::endl;
 	std::cout << "確率 : " << (max / sum) * 100 << "[%]" << std::endl;
 }
